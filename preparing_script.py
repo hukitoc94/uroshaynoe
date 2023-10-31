@@ -533,7 +533,7 @@ def radar_plot(test_df):
 
     data = [size_cats, ('тип обработки', [PP, TT])]
 
-    theta = radar_factory(len(size_cats), frame='polygon')
+    theta = radar_factory(len(size_cats), frame='circle')
 
 
 
@@ -580,3 +580,90 @@ def suhoe_stats_barplot(test_df):
     stats = test_df[['Тип обработки', "Размер агрегатов, мм",'Содержание агрегатов, %']].groupby(['Тип обработки', "Размер агрегатов, мм"]).agg(['mean','std','sem'])\
     
     return(ax,rp, stats.round(2))
+
+
+
+#### Для мокрого просеивания 
+
+def mokroe_stats_barplot(test_df):
+    fig, ax  = plt.subplots(2,2, figsize = (11,11) )
+
+
+    test_df.sort_values(by = ["Тип обработки","Размер сухого агрегата","Размеры фракций, мм"], inplace= True)
+
+
+    sns.set(font_scale=1.1)
+    sns.set_style("ticks")
+    for n,i in enumerate([[">10","10-7"],["7-5","5-3"]]):
+        for k in range(len(i)):
+            test_df
+            df = test_df[test_df['Размер сухого агрегата'] == i[k]]
+            df['Размеры фракций, мм'] = df['Размеры фракций, мм'].astype(str)
+            plot = sns.barplot(df,
+                        y="Содержание агрегатов, %",
+                        x='Размеры фракций, мм',
+                        hue="Тип обработки",
+                        palette = "prism",
+                        edgecolor = "black",
+                        errcolor = "black",
+                        errorbar = 'se',
+                        capsize = 0.2,
+                        errwidth = 1.5,
+                        ax = ax[n,k]
+            ) 
+
+
+            for d, patch in enumerate(plot.patches):
+                if d < len(plot.patches)/2:
+                    patch.set_hatch("//")
+            ax[n,k].get_legend().set_visible(False)
+            ax[n,k].set(title='Размер сухого агрегата {}'.format(i[k]))
+    ax[0,0].legend(loc='best', fontsize = 16, title='Тип обработки')
+    return(fig)
+
+def mokroe_stats(test_df):
+    test_df_for_stats = test_df[[
+        'Тип обработки',
+        "Размер сухого агрегата",
+        "Размеры фракций, мм",
+        'Содержание агрегатов, %']]
+    stats = test_df_for_stats.groupby(['Тип обработки', "Размер сухого агрегата","Размеры фракций, мм",]).agg(['mean','std','sem']).reset_index().dropna(axis = 0)
+    return(stats)
+
+def radar_chart(test_df):
+        test_df_for_stats = test_df[[
+                'Тип обработки',
+                "Размер сухого агрегата",
+                "Размеры фракций, мм",
+                "Содержание агрегатов, %"]]
+        rebuild = test_df_for_stats.groupby(['Тип обработки',"Размер сухого агрегата","Размеры фракций, мм"]).agg(['mean']).reset_index().dropna(axis = 0)
+
+        rebuild = rebuild.droplevel(1, axis = 1)
+
+
+        for n,i in enumerate([[">10","10-7"],["7-5","5-3"]]):
+                for k in range(len(i)):
+                
+                        df = rebuild[rebuild['Размер сухого агрегата'] == i[k]]
+                        size_cats = df['Размеры фракций, мм'].unique().astype(str)
+                        PP = df[df['Тип обработки']  == 'ПП']["Содержание агрегатов, %"].to_list()
+                        TT = df[df['Тип обработки']  != 'ПП']["Содержание агрегатов, %"].to_list()
+                        theta = radar_factory(len(size_cats), frame='circle')
+                        fig, ax = plt.subplots( figsize=(5,5),subplot_kw=dict(projection='radar'))
+
+
+                        fig.subplots_adjust(top=0.85, bottom=0.05)
+                
+                        line = ax.plot(size_cats, TT, color = '#df204c')
+                        ax.fill(size_cats, TT, color = '#df204c' ,alpha=0.25)
+
+                        line = ax.plot(size_cats, PP, color = '#43cc1d')
+                        ax.fill(size_cats, PP, color = '#43cc1d' ,alpha=0.25)
+                        ax.set_varlabels(size_cats)
+                        ax.set(title='Размер сухого агрегата {}'.format(i[k]))
+
+def mokroe_all(test_df):
+    mokroe_stats_barplot(test_df)
+    stats = (mokroe_stats(test_df))
+    radar_chart(test_df)
+    return(stats)
