@@ -500,7 +500,7 @@ def suhoe_stats_barplot(test_df):
                 errcolor = "black",
                 errorbar = 'se',
                 capsize = 0.2,
-                errwidth = 1.5)
+                errwidth = 1)
 
     for i, patch in enumerate(ax.patches):
             if i < len(ax.patches)/2:
@@ -542,7 +542,7 @@ def mokroe_stats_barplot(test_df):
                         errcolor = "black",
                         errorbar = 'se',
                         capsize = 0.2,
-                        errwidth = 1.5,
+                        errwidth = 1,
                         ax = ax[n,k]
             ) 
 
@@ -601,3 +601,43 @@ def mokroe_all(test_df):
     stats = (mokroe_stats(test_df))
     radar_chart(test_df)
     return(stats)
+
+
+##### Агрофизика по группам статистика 
+def aov_by_group(df,proprety, group):
+    df = df[[group, proprety,  "Тип обработки" ]]
+    group = re.sub(r'[\(),.%№ /-<>=-]', '' , group)
+    property_ = re.sub(r'[\(),.%№ /-<>=-]', '' , proprety)
+    df.columns = df.columns.str.replace(r'[\(),.%№ /-<>=-]', '', )
+    formula = '{} ~ Типобработки * {}'.format(property_,group )
+    print(formula)
+    reg = ols(formula ,  data=df).fit()
+    aov = sm.stats.anova_lm(reg)
+    return(aov)
+
+
+def agrofiz_plot_by_groups(data, proprety, group):
+        sns.set(font_scale = 14)
+
+        sns.set_theme(style="white", palette=None)
+        fig = plt.figure(figsize=(5,5))
+        plot = sns.pointplot(data = data,
+                        x = group,
+                        y = proprety,
+                        hue = "Тип обработки",
+                        palette = "prism",
+                        scale = 1.2,
+                        dodge = 0.2,
+                        ci = 95,
+                        join = False,
+                        capsize = .05,)
+        plot.set_title('Сравнение по обработкам')
+        plot.legend().set_title(('Технология'))
+
+        samp = data[["Тип обработки",group,proprety ]]
+        stats = samp.groupby([group,"Тип обработки"]).agg({ 'mean','std','sem'})
+        
+
+        AOV = aov_by_group(data, proprety, group)
+
+        return(stats,AOV,plot )
